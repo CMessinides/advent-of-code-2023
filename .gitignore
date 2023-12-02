@@ -3,6 +3,9 @@ dist/
 # generated types
 .astro/
 
+# AoC input
+input/
+
 # dependencies
 node_modules/
 
