@@ -1,21 +1,25 @@
 import { splitLines } from "../utils/text";
 
 export function solvePuzzle1(input: string): number {
-	return solve(new Bag({ red: 12, green: 13, blue: 14 }), input)
+	const constraint = new Bag({ red: 12, green: 13, blue: 14 })
+	const games = parseGames(input)
+	
+	return games.reduce((sum, game) => {
+		const requiredBag = calculateRequiredBag(game)
+		return constraint.contains(requiredBag) ? sum + game.id : sum;
+	}, 0)
 }
 
-function solve(constraint: Bag, input: string): number {
-	return splitLines(input).map(parseLine).reduce((sum, game) => {
-		const maximums = findBagMaximums(game)
-		return constraint.contains(maximums) ? sum + game.id : sum;
-	}, 0)
+export function solvePuzzle2(input: string): number {
+	const games = parseGames(input)
+	const requiredBags = games.map(calculateRequiredBag)
+	return requiredBags.reduce((sum, bag) => sum + bag.power, 0)
 }
 
 type Game = {
 	id: number;
 	samples: Bag[];
 }
-
 type Color = 'red' | 'green' | 'blue';
 type BagInit = Partial<Record<Color, number>>
 
@@ -38,6 +42,10 @@ class Bag {
 		this.blue = blue;
 	}
 
+	get power() {
+		return this.red * this.green * this.blue;
+	}
+
 	contains(other: Bag) {
 		return this.red >= other.red
 			&& this.green >= other.green
@@ -51,6 +59,14 @@ class Bag {
 			blue: Math.max(this.blue, other.blue),
 		})
 	}
+}
+
+function calculateRequiredBag(game: Game): Bag {
+	return game.samples.reduce((acc, bag) => acc.max(bag))
+}
+
+function parseGames(input: string): Game[] {
+	return splitLines(input).map(parseLine)
 }
 
 function parseLine(line: string): Game {
@@ -79,8 +95,3 @@ function parseCount(text: string): [color: Color, count: number] {
 	const match = text.match(/(?<count>\d+) (?<color>red|green|blue)/)
 	return [match!.groups!.color as Color, parseInt(match!.groups!.count)] 
 }
-
-function findBagMaximums(game: Game): Bag {
-	return game.samples.reduce((acc, bag) => acc.max(bag))
-}
-
