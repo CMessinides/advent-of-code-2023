@@ -1,27 +1,38 @@
-import { identity } from "../utils/identity";
 import { splitLines } from "../utils/text";
 
-const ENGLISH_DIGITS = {
-	zero: "0",
-	one: "1",
-	two: "2",
-	three: "3",
-	four: "4",
-	five: "5",
-	six: "6",
-	seven: "7",
-	eight: "8",
-	nine: "9",
-}
+const DIGITS: ParseTable = createParseTable({
+	"0": {},
+	"1": {},
+	"2": {},
+	"3": {},
+	"4": {},
+	"5": {},
+	"6": {},
+	"7": {},
+	"8": {},
+	"9": {},
+})
+
+const DIGITS_AND_WORDS: ParseTable = DIGITS.concat(createParseTable({
+	zero: { replacement: "0" },
+	one: { replacement: "1" },
+	two: { replacement: "2" },
+	three: { replacement: "3" },
+	four: { replacement: "4" },
+	five: { replacement: "5" },
+	six: { replacement: "6" },
+	seven: { replacement: "7" },
+	eight: { replacement: "8" },
+	nine: { replacement: "9" },
+}))
 
 export function solvePuzzle1(input: string): number {
-	const parser = createLineParser(/\d/g)
+	const parser = createLineParser(DIGITS)
 	return solve(parser, input);
 }
 
 export function solvePuzzle2(input: string): number {
-	const pattern = new RegExp(`\\d|(${Object.keys(ENGLISH_DIGITS).join('|')})`, 'gi')
-	const parser = createLineParser(pattern, createTransformer(ENGLISH_DIGITS))
+	const parser = createLineParser(DIGITS_AND_WORDS)
 	return solve(parser, input);
 }
 
@@ -29,21 +40,26 @@ function solve(parse: Parser, input: string): number {
 	return splitLines(input).map(parse).reduce((a,b) => a + b)
 }
 
-type CalibrationValue = number;
-type Parser = (line: string) => CalibrationValue;
-type Transformer = (match: string) => string;
+type ParseTable = ParseTableEntry[]
+type ParseTableEntry = [pattern: string, replacement: string]
+type Parser = (line: string) => number;
 
-
-function createLineParser(pattern: RegExp, transform: Transformer = identity): Parser {
+function createLineParser(table: ParseTable): Parser {
 	return function(line) {
 		const digits: string[] = []
 
-		for (const [match] of line.matchAll(pattern)) {
-			digits.push(transform(match))	
+		for (let i = 0; i < line.length; i++) {
+			for (const [pattern, digit] of table) {
+				if (line.substring(i, i + pattern.length) === pattern) {
+					digits.push(digit);
+					break;
+				}
+			}
+			
 		}
 
 		if (digits.length === 0) {
-			throw ParseError.NO_DIGITS_FOUND(line, pattern)
+			throw ParseError.NO_DIGITS_FOUND(line)
 		}
 
 		return parseInt(digits.at(0)! + digits.at(-1)!)
@@ -51,21 +67,16 @@ function createLineParser(pattern: RegExp, transform: Transformer = identity): P
 }
 
 class ParseError extends Error {
-	static NO_DIGITS_FOUND(line: string, pattern: RegExp) {
-		return new ParseError(`Invalid line: no digits found`, line, pattern)	
+	static NO_DIGITS_FOUND(line: string) {
+		return new ParseError(`Invalid line: no digits found`, line)	
 	}
 
-	constructor(message: string, line: string, pattern: RegExp) {
-		super(`${message}\n\n\tLine: "${line}"\n\tPattern: ${pattern}`);
+	constructor(message: string, line: string) {
+		super(`${message}\n\n\tLine: "${line}"`);
 	}
 }
 
-function createTransformer(spec: Record<string, string>): Transformer {
-	return function(match) {
-		if (typeof spec[match] !== "undefined") {
-			return spec[match];
-		}
-
-		return match;
-	}
+function createParseTable(spec: Record<string, { replacement?: string }>): ParseTable {
+	return Object.entries(spec)
+		.map(([pattern, { replacement = pattern }]) => [pattern, replacement])
 }
