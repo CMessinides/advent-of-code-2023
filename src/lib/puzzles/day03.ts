@@ -1,80 +1,126 @@
-import type { Array2DReducer } from "../utils/array2d";
 import { Array2D } from "../utils/array2d";
 import { textToArray2D } from "../utils/text";
 
 export function solvePuzzle1(input: string): number {
-	const chars = textToArray2D(input)
-
-	const adjacencies = Array2D.empty<boolean>(chars.width, chars.height)
-	for (let i = 0; i < chars.length; i++) {
-		const char = chars.at(i)!;
-
-		if (char === '.' || isDigit(char)) {
-			continue;
-		}
-
-		for (const n of chars.neighbors(i)) {
-			adjacencies.set(n, true)
-		}
-	}
-
-	const { partNumbers } = chars.reduce(findAdjacentPartNumbers(adjacencies))!
-	return partNumbers.reduce((a, b) => a + b)
+	const schematic = textToArray2D(input)
+	const engine = createEngine(schematic)
+	const adjacentPartNumbers = new Set(engine.adjacencies.map(([_sym, num]) => num))
+	return [...adjacentPartNumbers].reduce((sum, num) => sum + num.value, 0)
 }
 
-type SchematicDigit = { char: string, isAdjacent: boolean }
-
-class SchematicState {
-	partNumbers: number[]
-	digits: SchematicDigit[]
-
-	static empty() {
-		return new SchematicState()
-	}
-
-	constructor(partNumbers: number[] = [], digits: SchematicDigit[] = []) {
-		this.partNumbers = partNumbers
-		this.digits = digits
-	}
-
-	concat(digit: SchematicDigit): SchematicState {
-		return new SchematicState(
-			this.partNumbers,
-			this.digits.concat(digit),
-		)
-	}
-
-	popDigits(): SchematicState {
-		if (this.digits.some(d => d.isAdjacent)) {
-			const partNumber = parseInt(this.digits.map(d => d.char).join(''))
-			return new SchematicState(this.partNumbers.concat(partNumber))
-		} else {
-			return new SchematicState(this.partNumbers)
+export function solvePuzzle2(input: string): number {
+	const schematic = textToArray2D(input)
+	const engine = createEngine(schematic)
+	const gearAdjacencies = engine.adjacencies.filter(([sym]) => sym.symbol === "*")
+	const valuesByGear = gearAdjacencies.reduce((map, [sym, num]) => {
+		if (!map.has(sym)) {
+			map.set(sym, [])
 		}
-	}
+
+		map.get(sym)!.push(num.value)
+
+		return map
+	}, new Map<EngineSymbol, number[]>())
+
+	return [...valuesByGear.values()]
+			.filter((values) => values.length === 2)
+			.reduce((sum, [left, right]) => sum + left * right, 0)
 }
 
-type SchematicReducer = Array2DReducer<string, SchematicState>
+type Schematic = Array2D<string>
 
-function findAdjacentPartNumbers(adjacencies: Array2D<boolean>): SchematicReducer {
-	return function (state, char, i, chars) {
-		if (!state) {
-			state = SchematicState.empty()
-		}
+type PartNumber = {
+	value: number,
+	index: number,
+	length: number,
+}
 
-		const currentRow = chars.indexToCoords(i)[1]
-		const prevRow = chars.indexToCoords(i - 1)[1]
+type EngineSymbol = {
+	symbol: string,
+	index: number,
+}
 
-		if (!isDigit(char) || currentRow !== prevRow) {
-			state = state.popDigits()
-		}
+type Engine = {
+	partNumbers: PartNumber[],
+	symbols: EngineSymbol[],
+	adjacencies: [EngineSymbol, PartNumber][],
+}
 
-		if (isDigit(char)) {
-			state = state.concat({ char, isAdjacent: adjacencies.at(i) ?? false })
-		}
-
-		return state
+function createEngine(schematic: Schematic): Engine {
+	const engine: Engine = {
+		...findAllParts(schematic),
+		adjacencies: []
 	}
+
+	for (const sym of engine.symbols) {
+		const neighbors = [...schematic.neighbors(sym.index)]
+
+		for (const num of engine.partNumbers) {
+			const start = num.index
+			const end = start + num.length
+
+			if (neighbors.some(n => n >= start && n < end)) {
+				engine.adjacencies.push([sym, num])
+			}
+		}
+	}
+
+	return engine
+}
+
+type EngineParts = Pick<Engine, "partNumbers" | "symbols">
+
+function findAllParts(schematic: Schematic): EngineParts {
+	const parts: EngineParts = {
+		partNumbers: [],
+		symbols: []
+	}
+
+	let i = 0
+
+	const advance = () => { i++ }
+	const current = () => schematic.at(i)
+
+	const isSameRow = (a: number, b: number) => {
+		const y1 = schematic.indexToCoords(a)[1]
+		const y2 = schematic.indexToCoords(b)[1]
+
+		return y1 === y2
+	}
+
+	while (i < schematic.length) {
+		const c = current()!
+
+		if (c === '.') {
+			advance()
+			continue
+		}
+
+		if (isDigit(c)) {
+			const start = i
+
+			while (isDigit(current()!) && isSameRow(start, i)) {
+				advance()
+			}
+
+			const word = schematic.items.slice(start, i).join('')
+			parts.partNumbers.push({
+				value: parseInt(word),
+				index: start,
+				length: word.length,
+			})
+
+			continue
+		}
+
+		parts.symbols.push({
+			symbol: c,
+			index: i,
+		})
+		advance()
+	}
+
+	return parts
 }
 
 function isDigit(char: string): boolean {
