@@ -8,35 +8,9 @@ export function solvePuzzle1(input: string): number {
 	return [...adjacentPartNumbers].reduce((sum, num) => sum + num.value, 0)
 }
 
-export function __v2__solvePuzzle1(input: string): number {
-	const schematic = textToArray2D(input)
-	const engine = __v2__createEngine(schematic)
-	const adjacentPartNumbers = new Set(engine.adjacencies.map(([_sym, num]) => num))
-	return [...adjacentPartNumbers].reduce((sum, num) => sum + num.value, 0)
-}
-
 export function solvePuzzle2(input: string): number {
 	const schematic = textToArray2D(input)
 	const engine = createEngine(schematic)
-	const gearAdjacencies = engine.adjacencies.filter(([sym]) => sym.symbol === "*")
-	const valuesByGear = gearAdjacencies.reduce((map, [sym, num]) => {
-		if (!map.has(sym)) {
-			map.set(sym, [])
-		}
-
-		map.get(sym)!.push(num.value)
-
-		return map
-	}, new Map<EngineSymbol, number[]>())
-
-	return [...valuesByGear.values()]
-			.filter((values) => values.length === 2)
-			.reduce((sum, [left, right]) => sum + left * right, 0)
-}
-
-export function __v2__solvePuzzle2(input: string): number {
-	const schematic = textToArray2D(input)
-	const engine = __v2__createEngine(schematic)
 	const gearAdjacencies = engine.adjacencies.filter(([sym]) => sym.symbol === "*")
 	const valuesByGear = gearAdjacencies.reduce((map, [sym, num]) => {
 		if (!map.has(sym)) {
@@ -72,7 +46,7 @@ type Engine = {
 	adjacencies: [EngineSymbol, PartNumber][],
 }
 
-function __v2__createEngine(schematic: Schematic): Engine {
+function createEngine(schematic: Schematic): Engine {
 	const engine: Engine = {
 		...findAllParts(schematic),
 		adjacencies: []
@@ -97,28 +71,6 @@ function __v2__createEngine(schematic: Schematic): Engine {
 
 		for (const num of adjNumbers) {
 			engine.adjacencies.push([sym, num])
-		}
-	}
-
-	return engine
-}
-
-function createEngine(schematic: Schematic): Engine {
-	const engine: Engine = {
-		...findAllParts(schematic),
-		adjacencies: []
-	}
-
-	for (const sym of engine.symbols) {
-		const neighbors = [...schematic.neighbors(sym.index)]
-
-		for (const num of engine.partNumbers) {
-			const start = num.index
-			const end = start + num.length
-
-			if (neighbors.some(n => n >= start && n < end)) {
-				engine.adjacencies.push([sym, num])
-			}
 		}
 	}
 
