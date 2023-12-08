@@ -9,26 +9,22 @@ export function solvePuzzle1(input: string): number {
 export function solvePuzzle2(input: string): number {
 	const lines = splitLines(input)
 	const cards = lines.map(parseCard)
-	const cardTable = new Map(cards.map(card => [card.id, card]))
 
-	let scratchcards = [...cardTable.values()]
+	let stack = cards.map((_, i) => i)
+	let count = stack.length
+	let cache: number[][] = cards.map(winCards)
 
-	for (let i = 0; i < scratchcards.length; i++) {
-		const card = scratchcards[i]
-		const hits = intersection(card.winning, card.actual)
-		for (let h = 0; h < hits.size; h++) {
-			const wonCard = cardTable.get(card.id + h + 1)
-			if (wonCard) {
-				scratchcards.push(wonCard)
-			}
-		}
+	while (stack.length) {
+		const i = stack.pop()!
+		const wonCards = cache[i]
+		count += wonCards.length
+		stack.push(...wonCards)
 	}
 
-	return scratchcards.length
+	return count
 }
 
 type Card = {
-	id: number,
 	winning: Set<number>,
 	actual: Set<number>,
 }
@@ -41,6 +37,11 @@ function score(card: Card): number {
 	}
 
 	return Math.pow(2, hits.size - 1)
+}
+
+function winCards(card: Card, index: number): number[] {
+	const hits = intersection(card.winning, card.actual)
+	return new Array(hits.size).fill(index + 1).map((x, i) => x + i)
 }
 
 function intersection<T = any>(a: Set<T>, b: Set<T>): Set<T> {
@@ -58,7 +59,8 @@ function intersection<T = any>(a: Set<T>, b: Set<T>): Set<T> {
 }
 
 function parseCard(line: string): Card {
-	const [_, id, winning, actual] = line.trim().match(/^Card +(\d+): (.+) \| (.+)$/)!
+	const body = line.split(":")[1]
+	const [winning, actual] = body.split(" | ")
 
 	const toInts = (text: string) => text
 		.trim()
@@ -66,7 +68,6 @@ function parseCard(line: string): Card {
 		.map(part => parseInt(part))
 
 	return {
-		id: parseInt(id),
 		winning: new Set(toInts(winning)),
 		actual: new Set(toInts(actual)),
 	}
