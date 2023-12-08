@@ -1,12 +1,15 @@
 import { Array2D } from "./array2d";
 
 /**
- * Split `text` into lines. Blank lines are removed.
+ * Split `text` into lines. Trailing newlines are removed.
  */
 export function splitLines(text: string): string[] {
-	return text.split(/\r?\n/).filter(line => line !== '')
+	return text.trim().split(/\r?\n/)
 }
 
+export function splitParagraphs(text: string): string[] {
+	return text.trim().split(/\n{2}/)
+}
 
 export function textToArray2D(text: string): Array2D<string> {
 	const lines = splitLines(text)
