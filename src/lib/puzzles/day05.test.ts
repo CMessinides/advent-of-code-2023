@@ -45,3 +45,8 @@ test('solution 1', () => {
 	expect(day05.solvePuzzle1(SAMPLE_INPUT)).toBe(35)
 	expect(day05.solvePuzzle1(PUZZLE_INPUT)).toBe(26273516)
 })
+
+test('solution 2', () => {
+	expect(day05.solvePuzzle2(SAMPLE_INPUT)).toBe(46)
+	expect(day05.solvePuzzle2(PUZZLE_INPUT)).toBe(-1)
+})

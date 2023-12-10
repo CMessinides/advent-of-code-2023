@@ -28,4 +28,4 @@ export function search<N, S = N>(compare: Comparator<N, S>, tree: BinarySearchTr
 			default:
 				return root
 		}
-} 
+}
