@@ -48,5 +48,5 @@ test('solution 1', () => {
 
 test('solution 2', () => {
 	expect(day05.solvePuzzle2(SAMPLE_INPUT)).toBe(46)
-	expect(day05.solvePuzzle2(PUZZLE_INPUT)).toBe(-1)
+	expect(day05.solvePuzzle2(PUZZLE_INPUT)).toBe(34039469)
 })

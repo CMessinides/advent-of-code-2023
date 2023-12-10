@@ -49,7 +49,7 @@ function decodePoint(ciphers: Cipher[]): PointDecoder {
 function decodeRanges(ciphers: Cipher[]): RangeDecoder {
 	return function (ranges) {
 		return ciphers.reduce((ranges, cipher) => {
-			return translate(cipher, ranges)
+			return mapRanges(cipher, ranges)
 		}, ranges)
 	}
 }
@@ -66,46 +66,31 @@ const ruleContainsPoint: Comparator<CipherRule, number> = (rule, input) => {
 	return 0
 }
 
-function translate(cipher: Cipher, ranges: Range[]): Range[] {
+function mapRanges(cipher: Cipher, ranges: Range[]): Range[] {
 	if (cipher.length === 0) {
 		return ranges
 	}
 
 	const translated: Range[] = []
-	const ruleQueue = [...cipher]
 
 	for (const range of ranges) {
 		const { start, end } = range
-	
-		const intersecting: CipherRule[] = []
-		for (let i = 0; i < ruleQueue.length; i++) {
-			const rule = ruleQueue[i];
-			if (rangesIntersect(range, rule.range)) {
-				intersecting.push(rule)
-			}
 
-			if (rule.range.start > end) {
-				break
-			}
-		}
+		const firstRule = search(ruleContainsPoint, cipher, start)
+		const lastRule = search(ruleContainsPoint, cipher, end)
+		const firstRuleIndex = cipher.indexOf(firstRule!)
+		const lastRuleIndex = cipher.indexOf(lastRule!)
 
-		for (const rule of intersecting) {
+		for (let i = firstRuleIndex; i <= lastRuleIndex; i++) {
+			const rule = cipher[i];
 			translated.push({
 				start: Math.max(rule.range.start, start) + rule.offset,
 				end: Math.min(rule.range.end, end) + rule.offset,
 			})
-			
-			if (rule.range.end <= end) {
-				ruleQueue.shift()
-			}
 		}
 	}
 
 	return translated.sort(byRangeStart)
-}
-
-function rangesIntersect(a: Range, b: Range): boolean {
-	return (a.start >= b.start && a.start <= b.end || a.end <= b.end && a.end >= b.start)
 }
 
 function byRangeStart(a: Range, b: Range): number {
