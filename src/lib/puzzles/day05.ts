@@ -72,21 +72,35 @@ function mapRanges(cipher: Cipher, ranges: Range[]): Range[] {
 	}
 
 	const translated: Range[] = []
+	const ruleQueue = [...cipher]
 
 	for (const range of ranges) {
-		const { start, end } = range
+		while (ruleQueue.length) {
+			const rule = ruleQueue[0]
 
-		const firstRule = search(ruleContainsPoint, cipher, start)
-		const lastRule = search(ruleContainsPoint, cipher, end)
-		const firstRuleIndex = cipher.indexOf(firstRule!)
-		const lastRuleIndex = cipher.indexOf(lastRule!)
+			// skip all rules before the start of the range
+			if (ruleEndsBeforeRange(rule, range)) {
+				ruleQueue.shift()
+				continue
+			}
 
-		for (let i = firstRuleIndex; i <= lastRuleIndex; i++) {
-			const rule = cipher[i];
-			translated.push({
-				start: Math.max(rule.range.start, start) + rule.offset,
-				end: Math.min(rule.range.end, end) + rule.offset,
-			})
+			// stop processing rules after the end of the range
+			if (ruleStartsAfterRange(rule, range)) {
+				break
+			}
+
+			const start = Math.max(range.start, rule.range.start) + rule.offset;
+			const end = Math.min(range.end, rule.range.end) + rule.offset;
+
+			translated.push({ start, end })
+
+			// If the rule could still apply to ranges after this one, leave it
+			// in place and stop; otherwise, remove it and keep processing rules.
+			if (ruleEndsAfterRange(rule, range)) {
+				break
+			} else {
+				ruleQueue.shift()
+			}
 		}
 	}
 
@@ -95,6 +109,18 @@ function mapRanges(cipher: Cipher, ranges: Range[]): Range[] {
 
 function byRangeStart(a: Range, b: Range): number {
 	return a.start - b.start
+}
+
+function ruleEndsBeforeRange(rule: CipherRule, range: Range): boolean {
+	return rule.range.end < range.start
+}
+
+function ruleStartsAfterRange(rule: CipherRule, range: Range): boolean {
+	return rule.range.start > range.end
+}
+
+function ruleEndsAfterRange(rule: CipherRule, range: Range): boolean {
+	return rule.range.end > range.end
 }
 
 function parseSeeds(line: string): number[] {
