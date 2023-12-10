@@ -1,8 +1,13 @@
 import { splitLines } from "../utils/text";
 
 export function solvePuzzle1(input: string): number {
-	const races = parse(input)
+	const races = parseMultipleRaces(input)
 	return races.reduce((product, race) => product * countWinningSpeeds(race), 1)
+}
+
+export function solvePuzzle2(input: string): number {
+	const race = parseSingularRace(input)
+	return countWinningSpeeds(race)
 }
 
 type Race = {
@@ -49,7 +54,11 @@ function calculateDistance(duration: number, speed: number): number {
 	return (duration - speed) * speed;
 }
 
-function parse(input: string): Race[] {
+function parseMultipleRaces(input: string): Race[] {
+	const parseLine = (line: string) => (
+		line.split(":")[1].trim().split(/ +/).map(part => parseInt(part))
+	)
+
 	const [durations, distances] = splitLines(input).map(parseLine)
 
 	if (durations.length !== distances.length) {
@@ -64,10 +73,15 @@ function parse(input: string): Race[] {
 	})
 }
 
-function parseLine(line: string): number[] {
-	return line
-		.split(":")[1]
-		.trim()
-		.split(/ +/)
-		.map(part => parseInt(part))
+function parseSingularRace(input: string): Race {
+	const parseLine = (line: string) => parseInt(
+		line.split(":")[1].trim().split(/ +/).join('')
+	)
+
+	const [duration, recordDistance] = splitLines(input).map(parseLine)
+
+	return {
+		duration,
+		recordDistance,
+	}
 }
