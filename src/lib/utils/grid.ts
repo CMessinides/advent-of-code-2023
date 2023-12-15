@@ -10,6 +10,7 @@ export const Direction = {
 	W:  [-1,  0],
 	NW: [-1, -1],
 } as const satisfies Record<string, Vector2D>;
+export type Direction = typeof Direction[keyof typeof Direction]
 
 export const Directions = {
 	CARDINAL: new Set([
@@ -36,7 +37,7 @@ export const Directions = {
 	]),
 } as const satisfies Record<string, DirectionIterable>;
 
-export type DirectionIterable = Iterable<typeof Direction[keyof typeof Direction]>
+export type DirectionIterable = Iterable<Direction>
 
 export class Grid<T> {
 	static empty<T = any>(width: number, height: number): Grid<T> {
