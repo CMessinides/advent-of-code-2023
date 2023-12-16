@@ -1,43 +1,4 @@
-export type Vector2D = [x: number, y: number]
-
-export const Direction = {
-	N:  [ 0, -1],
-	NE: [ 1, -1],
-	E:  [ 1,  0],
-	SE: [ 1,  1],
-	S:  [ 0,  1],
-	SW: [-1,  1],
-	W:  [-1,  0],
-	NW: [-1, -1],
-} as const satisfies Record<string, Vector2D>;
-export type Direction = typeof Direction[keyof typeof Direction]
-
-export const Directions = {
-	CARDINAL: new Set([
-		Direction.N,
-		Direction.E,
-		Direction.S,
-		Direction.W
-	]),
-	ORTHOGONAL: new Set([
-		Direction.NE,
-		Direction.SE,
-		Direction.SW,
-		Direction.NW,
-	]),
-	ALL: new Set([
-		Direction.N,
-		Direction.NE,
-		Direction.E,
-		Direction.SE,
-		Direction.S,
-		Direction.SW,
-		Direction.W,
-		Direction.NW,
-	]),
-} as const satisfies Record<string, DirectionIterable>;
-
-export type DirectionIterable = Iterable<Direction>
+import { Directions, type Direction, type Vector2D } from "./vector";
 
 export class Grid<T> {
 	static empty<T = any>(width: number, height: number): Grid<T> {
@@ -77,10 +38,21 @@ export class Grid<T> {
 	index(x: number, y: number): number {
 		return this.width * y + x
 	}
+
+	find(predicate: (cell: GridCell<T>) => boolean): GridCell<T> | null {
+		for (let i = 0; i < this.items.length; i++) {
+			const cell = new GridCell(this, i)
+			if (predicate(cell)) {
+				return cell
+			} 
+		}
+
+		return null
+	}
 }
 
 export class GridCell<T> {
-	protected grid: Grid<T>;
+	grid: Grid<T>;
 	index: number;
 
 	constructor(grid: Grid<T>, index: number) {
@@ -108,12 +80,13 @@ export class GridCell<T> {
 		this.grid.items[this.index] = v
 	}
 
-	*neighbors(directions: DirectionIterable = Directions.ALL): IterableIterator<GridCell<T>> {
-		for (const [dx, dy] of directions) {
+	*neighbors(directions: Iterable<Direction> = Directions.ALL): IterableIterator<[direction: Direction, cell: GridCell<T>]> {
+		for (const dir of directions) {
+			const [dx, dy] = dir
 			const x = this.x + dx
 			const y = this.y + dy
 			if (this.grid.contains(x, y)) {
-				yield this.grid.at(x, y)
+				yield [dir, this.grid.at(x, y)]
 			}
 		}
 	}
